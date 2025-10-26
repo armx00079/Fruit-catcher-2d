@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🍑 Fruit Catcher Game 🍓</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #89f7fe, #66a6ff);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: "Poppins", sans-serif;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #ff6b6b, #feca57, #1dd1a1, #48dbfb, #5f27cd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        #gameContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+            touch-action: none;
+        }
+
+        #score {
+            font-size: 22px;
+            color: #fff;
+            font-weight: 600;
+            margin: 5px 0 10px;
+        }
+
+        .btn {
+            margin-top: 10px;
+            padding: 10px 25px;
+            border: 2px solid #fff;
+            color: #fff;
+            border-radius: 30px;
+            background: transparent;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #fff;
+            color: #66a6ff;
+            transform: scale(1.1);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 24px;
+            }
+
+            canvas {
+                width: 90vw !important;
+                height: 65vh !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🍑 Fruit Catcher 🍓</h1>
+    <div id="gameContainer">
+        <h2 id="score">Score: 0</h2>
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <button class="btn" id="restartBtn">Restart</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreDisplay = document.getElementById("score");
+        const restartBtn = document.getElementById("restartBtn");
+
+        let basket = {
+            x: 150,
+            y: 550,
+            width: 100,
+            height: 20,
+            speed: 6
+        }; // smoother speed
+        let fruits = [];
+        let score = 0;
+        let gameOver = false;
+        let fruitInterval;
+
+        const fruitImages = ["🍎", "🍌", "🍊", "🍇", "🍉", "🍓", "🍑"];
+        const gravity = 3; // fruit fall speed
+
+        function createFruit() {
+            const fruit = {
+                x: Math.random() * (canvas.width - 40),
+                y: -20,
+                emoji: fruitImages[Math.floor(Math.random() * fruitImages.length)],
+                size: 35,
+            };
+            fruits.push(fruit);
+        }
+
+        function drawBasket() {
+            ctx.fillStyle = "#ffb703";
+            ctx.beginPath();
+            ctx.roundRect(basket.x, basket.y, basket.width, basket.height, 10);
+            ctx.fill();
+            ctx.strokeStyle = "#fb8500";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function drawFruits() {
+            ctx.font = "30px Arial";
+            fruits.forEach((fruit) => ctx.fillText(fruit.emoji, fruit.x, fruit.y));
+        }
+
+        function updateFruits() {
+            fruits.forEach((fruit, index) => {
+                fruit.y += gravity;
+                if (
+                    fruit.y + fruit.size >= basket.y &&
+                    fruit.x + fruit.size >= basket.x &&
+                    fruit.x <= basket.x + basket.width
+                ) {
+                    fruits.splice(index, 1);
+                    score++;
+                    scoreDisplay.innerText = `Score: ${score}`;
+                } else if (fruit.y > canvas.height) {
+                    gameOver = true;
+                }
+            });
+        }
+
+        function gameLoop() {
+            if (gameOver) {
+                ctx.fillStyle = "rgba(0,0,0,0.6)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#fff";
+                ctx.font = "40px Poppins";
+                ctx.fillText("Game Over!", 100, 300);
+                ctx.font = "20px Poppins";
+                ctx.fillText("Tap Restart to Play Again", 85, 340);
+                clearInterval(fruitInterval);
+                return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBasket();
+            drawFruits();
+            updateFruits();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            score = 0;
+            fruits = [];
+            gameOver = false;
+            scoreDisplay.innerText = "Score: 0";
+            if (fruitInterval) clearInterval(fruitInterval);
+            fruitInterval = setInterval(() => {
+                if (!gameOver) createFruit();
+            }, 900);
+            gameLoop();
+        }
+
+        // Keyboard controls
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowLeft" && basket.x > 0) basket.x -= basket.speed * 5;
+            if (e.key === "ArrowRight" && basket.x < canvas.width - basket.width)
+                basket.x += basket.speed * 5;
+        });
+
+        // Mobile touch controls (smooth)
+        let touchX = null;
+        canvas.addEventListener("touchstart", (e) => {
+            touchX = e.touches[0].clientX;
+        });
+
+        canvas.addEventListener("touchmove", (e) => {
+            const deltaX = e.touches[0].clientX - touchX;
+            basket.x += deltaX * 0.15; // smoother control
+            if (basket.x < 0) basket.x = 0;
+            if (basket.x > canvas.width - basket.width) basket.x = canvas.width - basket.width;
+            touchX = e.touches[0].clientX;
+        });
+
+        restartBtn.addEventListener("click", startGame);
+        startGame();
+    </script>
+</body>
+
+</html>
